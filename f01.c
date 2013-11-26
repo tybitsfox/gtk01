@@ -23,7 +23,7 @@ void crt_window(int a,char** b)
 	crt_entry();//编辑框的建立
 	crt_statusicon();//托盘图标的建立和应用
 	g_signal_connect(G_OBJECT(ws.window),"delete-event",G_CALLBACK(hide_window),ws.sicon);//启动了托盘后禁止关闭按钮的退出，改为隐藏窗口，并显示托盘图标。
-
+	crt_mapevent();//地图事件盒的建立函数
 	gtk_widget_show_all(ws.window);
 //	g_signal_connect_swapped(G_OBJECT(ws.window),"destroy",G_CALLBACK(gtk_main_quit),NULL);
 	gtk_main();
@@ -57,7 +57,11 @@ void crt_toolbar()
 	crt_tooltips(GTK_WIDGET(ws.bnt[2]),GTK_WIDGET(ws.tips[2]),tmsg2);
 	crt_tooltips(GTK_WIDGET(ws.bnt[3]),GTK_WIDGET(ws.tips[3]),tmsg3);
 	crt_tooltips(GTK_WIDGET(ws.bnt[4]),GTK_WIDGET(ws.tips[4]),tmsg4);
-
+	g_signal_connect(G_OBJECT(ws.bnt[0]),"clicked",G_CALLBACK(on_bnt0),NULL);
+	g_signal_connect(G_OBJECT(ws.bnt[1]),"clicked",G_CALLBACK(on_bnt1),NULL);
+	g_signal_connect(G_OBJECT(ws.bnt[2]),"clicked",G_CALLBACK(on_bnt2),NULL);
+	g_signal_connect(G_OBJECT(ws.bnt[3]),"clicked",G_CALLBACK(on_bnt3),NULL);
+	g_signal_connect(G_OBJECT(ws.bnt[4]),"clicked",G_CALLBACK(on_bnt4),NULL);
 
 }//}}}
 //{{{void crt_tooltips(GtkWidget *widget,GtkWidget *tips,gpointer gp)
@@ -137,10 +141,10 @@ void crt_eventbox()
 	GtkWidget *img,*tips;
 	ws.event_box[0]=gtk_event_box_new();
 	gtk_event_box_set_visible_window(GTK_EVENT_BOX(ws.event_box[0]),FALSE);//该设置可使包含的图片透明色显示窗口的背景色
-	gtk_widget_set_events(ws.event_box[0],GTK_BUTTON_PRESS);//支持tooltips的显示
+	gtk_widget_set_events(ws.event_box[0],GDK_BUTTON_PRESS);//支持tooltips的显示
 	img=gtk_image_new_from_pixbuf(crt_pixbuf(enty_img));
-	gtk_container_add(GTK_CONTAINER(ws.event_box),img);//在事件盒中加入图片
-	crt_tooltips(ws.event_box[0],tips,"编辑栏的隐藏和显示\ntoggle button","");//建立tooltips
+	gtk_container_add(GTK_CONTAINER(ws.event_box[0]),img);//在事件盒中加入图片
+	crt_tooltips(ws.event_box[0],tips,"编辑栏的隐藏和显示\ntoggle button");//建立tooltips
 	gtk_fixed_put(GTK_FIXED(ws.fixed),ws.event_box[0],5,470);//放置fixed容器中
 	g_signal_connect(G_OBJECT(ws.event_box[0]),"button_press_event",G_CALLBACK(disp_entry),NULL);
 }//}}}
@@ -149,7 +153,7 @@ void crt_entry()
 {
 	ws.entry=gtk_entry_new();//建立编辑框
 	gtk_entry_set_max_length(GTK_ENTRY(ws.entry),60);//设置编辑框的最大字符长度
-	gtk_widget_set_size_request(ws.entry,510,25);//设置编辑框的尺寸大小
+	gtk_widget_set_size_request(ws.entry,610,25);//设置编辑框的尺寸大小
 	gtk_fixed_put(GTK_FIXED(ws.fixed),ws.entry,50,470);//放入fixed容器
 	sv.show_entry=1;//默认开始时编辑框可见
 }//}}}
@@ -173,18 +177,69 @@ void crt_statusicon()
 	g_signal_connect(GTK_STATUS_ICON(ws.sicon),"popup_menu",GTK_SIGNAL_FUNC(show_menu),ws.menu);//设置托盘图标右键点击时的响应函数
 	gtk_status_icon_set_visible(ws.sicon,FALSE);//设置托盘图标在窗口显示时为不可见
 }//}}}
-
-
-
-
+//{{{ gint hide_window(GtkWidget *widget,GdkEvent *event,gpointer gp)
+gint hide_window(GtkWidget *widget,GdkEvent *event,gpointer gp)
+{
+	gtk_widget_hide(ws.window);
+	gtk_status_icon_set_visible(ws.sicon,TRUE);
+	return TRUE;
+}//}}}
 //{{{ void restore_window(GtkWidget *widget,gpointer gp)
 void restore_window(GtkWidget *widget,gpointer gp)
 {
 	gtk_widget_show(ws.window);
+	gtk_window_deiconify(GTK_WINDOW(ws.window));
 	gtk_status_icon_set_visible(ws.sicon,FALSE);
 }//}}}
-
-
+//{{{ void set_window(GtkWidget *widget,gpointer gp)
+void set_window(GtkWidget *widget,gpointer gp)
+{
+	char ch[512];
+	GtkWidget *dlg,*fixed,*label,*img;
+	dlg=gtk_dialog_new();
+	gtk_window_set_title(GTK_WINDOW(dlg),"系统设置");
+	gtk_window_set_position(GTK_WINDOW(dlg),GTK_WIN_POS_CENTER);
+	gtk_widget_set_size_request(dlg,350,200);
+	gtk_window_set_resizable(GTK_WINDOW(dlg),FALSE);
+	fixed=gtk_fixed_new();
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox),fixed,FALSE,FALSE,0);
+	gtk_container_set_border_width(GTK_CONTAINER(dlg),2);
+	img=gtk_image_new_from_file(set_dlg_pix);
+	gtk_widget_set_size_request(img,96,96);
+	gtk_fixed_put(GTK_FIXED(fixed),img,5,5);
+	label=gtk_label_new("");
+	memset(ch,0,sizeof(ch));
+	snprintf(ch,sizeof(ch),"<span style=\"italic\" face=\"YaHei Consolas Hybrid\" font=\"20\" color=\"#ff00ff\">系统设置界面</span>");
+	gtk_label_set_markup(GTK_LABEL(label),ch);
+	gtk_widget_set_size_request(label,200,30);
+	gtk_fixed_put(GTK_FIXED(fixed),label,110,40);
+	gtk_widget_show_all(dlg);
+	gtk_dialog_run(GTK_DIALOG(dlg));
+	gtk_widget_destroy(dlg);
+}//}}}
+//{{{ void exit_window(GtkWidget *widget,gpointer gp)
+void exit_window(GtkWidget *widget,gpointer gp)
+{
+	gtk_main_quit();
+}//}}}
+//{{{ void show_menu(GtkWidget *widget,gint button,guint32 activate_time,gpointer gp)
+void show_menu(GtkWidget *widget,guint button,guint32 activate_time,gpointer gp)
+{
+	gtk_menu_popup(GTK_MENU(ws.menu),NULL,NULL,gtk_status_icon_position_menu,widget,button,activate_time);
+}//}}}
+//{{{ void crt_mapevent()
+void crt_mapevent()
+{
+	GtkWidget *img,*tips;
+	ws.event_box[1]=gtk_event_box_new();
+	gtk_event_box_set_visible_window(GTK_EVENT_BOX(ws.event_box[1]),FALSE);
+	gtk_widget_set_events(ws.event_box[1],GDK_BUTTON_PRESS);
+	img=gtk_image_new_from_file(sml_map);
+	gtk_widget_set_size_request(img,112,120);
+	crt_tooltips(ws.event_box[1],tips,"当前场景缩略图\na small map of current position");
+	gtk_container_add(GTK_CONTAINER(ws.event_box[1]),img);
+	gtk_fixed_put(GTK_FIXED(ws.fixed),ws.event_box[1],675,5);
+}///}}}
 
 //{{{gint disp_entry(GtkWidget *widget,GdkEvent *event,gpointer gp);
 gint disp_entry(GtkWidget *widget,GdkEvent *event,gpointer gp)
@@ -200,6 +255,142 @@ gint disp_entry(GtkWidget *widget,GdkEvent *event,gpointer gp)
 		sv.show_entry=1;
 	}
 }//}}}
+//{{{ void on_bnt0(GtkWidget *widget,gpointer gp)
+void on_bnt0(GtkWidget *widget,gpointer gp)
+{
+	char ch[512];
+	GtkWidget *dlg,*label,*fixed,*img;
+	dlg=gtk_dialog_new();
+	gtk_window_set_title(GTK_WINDOW(dlg),"基本信息设置");
+	gtk_widget_set_size_request(dlg,480,320);
+	gtk_window_set_position(GTK_WINDOW(dlg),GTK_WIN_POS_CENTER);
+	fixed=gtk_fixed_new();
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox),fixed,FALSE,FALSE,0);
+	img=gtk_image_new_from_file(set_dlg_pix);
+	gtk_widget_set_size_request(img,96,96);
+	gtk_fixed_put(GTK_FIXED(fixed),img,20,100);
+	label=gtk_label_new("");
+	memset(ch,0,sizeof(ch));
+	snprintf(ch,sizeof(ch),"<span face='YaHei Consolas Hybrid' color='red'>这是系统设置界面</span>");
+	gtk_label_set_markup(GTK_LABEL(label),ch);
+	//gtk_label_set_text();
+	gtk_widget_set_size_request(label,250,30);
+	gtk_fixed_put(GTK_FIXED(fixed),label,120,140);
+	gtk_widget_show_all(dlg);
+	gtk_dialog_run(GTK_DIALOG(dlg));
+	gtk_widget_destroy(dlg);
+}//}}}
+//{{{ void on_bnt1(GtkWidget *widget,gpointer gp);
+void on_bnt1(GtkWidget *widget,gpointer gp)
+{
+	GtkWidget *dlg,*fixed,*label,*img;
+	char ch[512];
+	memset(ch,0,sizeof(ch));
+	snprintf(ch,sizeof(ch),"<span style=\"oblique\" color=\"#660066\" font=\"16\">电子公告栏设置界面</span>");
+	dlg=gtk_dialog_new();
+	gtk_window_set_title(GTK_WINDOW(dlg),"电子公告栏设置");
+	gtk_widget_set_size_request(dlg,480,320);
+	gtk_window_set_position(GTK_WINDOW(dlg),GTK_WIN_POS_CENTER);
+	gtk_window_set_resizable(GTK_WINDOW(dlg),FALSE);
+	fixed=gtk_fixed_new();
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox),fixed,FALSE,FALSE,0);
+	img=gtk_image_new_from_file(set_dlg_pix);
+	gtk_widget_set_size_request(img,96,96);
+	gtk_fixed_put(GTK_FIXED(fixed),img,22,100);
+	label=gtk_label_new("");
+	gtk_widget_set_size_request(label,250,30);
+	gtk_label_set_markup(GTK_LABEL(label),ch);
+	gtk_fixed_put(GTK_FIXED(fixed),label,120,140);
+	gtk_widget_show_all(dlg);
+	gtk_dialog_run(GTK_DIALOG(dlg));
+	gtk_widget_destroy(dlg);
+}//}}}
+//{{{ void on_bnt2(GtkWidget *widget,gpointer gp)
+void on_bnt2(GtkWidget *widget,gpointer gp)
+{
+	char ch[512];
+	GtkWidget *dlg,*fixed,*label,*img;
+	dlg=gtk_dialog_new();
+	gtk_window_set_title(GTK_WINDOW(dlg),"bot操作设置");
+	gtk_widget_set_size_request(dlg,480,320);
+	gtk_window_set_resizable(GTK_WINDOW(dlg),FALSE);
+	gtk_window_set_position(GTK_WINDOW(dlg),GTK_WIN_POS_CENTER);
+	fixed=gtk_fixed_new();
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox),fixed,FALSE,FALSE,0);
+	img=gtk_image_new_from_file(set_dlg_pix);
+	gtk_widget_set_size_request(img,96,96);
+	gtk_fixed_put(GTK_FIXED(fixed),img,20,100);
+	label=gtk_label_new("");
+	memset(ch,0,sizeof(ch));
+	snprintf(ch,sizeof(ch),"<span style=\"italic\" color=\"#ff0000\">bot操作界面</span>");
+	gtk_label_set_markup(GTK_LABEL(label),ch);
+	gtk_widget_set_size_request(label,250,30);
+	gtk_fixed_put(GTK_FIXED(fixed),label,120,140);
+	gtk_widget_show_all(dlg);
+	gtk_dialog_run(GTK_DIALOG(dlg));
+	gtk_widget_destroy(dlg);
+}//}}}
+//{{{ void on_bnt3(GtkWidget *widget,gpointer gp)
+void on_bnt3(GtkWidget *widget,gpointer gp)
+{
+	char ch[512];
+	GtkWidget *dlg,*fixed,*label,*img;
+	dlg=gtk_dialog_new();
+	gtk_window_set_title(GTK_WINDOW(dlg),"服务器设置");
+	gtk_window_set_position(GTK_WINDOW(dlg),GTK_WIN_POS_CENTER);
+	gtk_widget_set_size_request(dlg,480,320);
+	gtk_window_set_resizable(GTK_WINDOW(dlg),FALSE);
+	fixed=gtk_fixed_new();
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox),fixed,FALSE,FALSE,0);
+	img=gtk_image_new_from_file(set_dlg_pix);
+	gtk_widget_set_size_request(img,96,96);
+	gtk_fixed_put(GTK_FIXED(fixed),img,20,100);
+	label=gtk_label_new("");
+	memset(ch,0,sizeof(ch));
+	snprintf(ch,sizeof(ch),"<span style=\"normal\" font=\"15\" color=\"green\">服务器设置</span>");
+	gtk_widget_set_size_request(label,250,30);
+	gtk_label_set_markup(GTK_LABEL(label),ch);
+	gtk_fixed_put(GTK_FIXED(fixed),label,120,140);
+	gtk_widget_show_all(dlg);
+	gtk_dialog_run(GTK_DIALOG(dlg));
+	gtk_widget_destroy(dlg);
+}//}}}
+//{{{ void on_bnt4(GtkWidget *widget,gpointer gp)
+void on_bnt4(GtkWidget *widget,gpointer gp)
+{
+	GtkWidget *dlg,*fixed,*label,*img;
+	char ch[512];
+	memset(ch,0,sizeof(ch));
+	snprintf(ch,sizeof(ch),"<span style=\"italic\" color=\"red\" font=\"20\">mud游戏界面设置</span>");
+	dlg=gtk_dialog_new();
+	gtk_window_set_title(GTK_WINDOW(dlg),"mud界面设置");
+	gtk_window_set_position(GTK_WINDOW(dlg),GTK_WIN_POS_CENTER);
+	gtk_widget_set_size_request(dlg,480,320);
+	gtk_window_set_resizable(GTK_WINDOW(dlg),FALSE);
+	fixed=gtk_fixed_new();
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dlg)->vbox),fixed,FALSE,FALSE,0);
+	img=gtk_image_new_from_file(set_dlg_pix);
+	gtk_widget_set_size_request(img,96,96);
+	gtk_fixed_put(GTK_FIXED(fixed),img,20,100);
+	label=gtk_label_new("");
+	gtk_label_set_markup(GTK_LABEL(label),ch);
+	gtk_widget_set_size_request(label,250,30);
+	gtk_fixed_put(GTK_FIXED(fixed),label,120,140);
+	gtk_widget_show_all(dlg);
+	gtk_dialog_run(GTK_DIALOG(dlg));
+	gtk_widget_destroy(dlg);
+}//}}}
+
+
+
+
+
+
+
+
+
+
+
 
 
 

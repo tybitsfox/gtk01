@@ -54,7 +54,7 @@ struct sys_vall sv; //}}}
 #define  win_y				600
 #define	 wbk_x				796
 #define  wbk_y				534
-#define  tv_x				560
+#define  tv_x				660
 #define  tv_y				450
 
 //下面的两项是textview的相对位置
@@ -116,10 +116,8 @@ void crt_eventbox();
 void crt_entry();
 //托盘图标的建立和应用函数
 void crt_statusicon();
-
-
-
-
+//事件盒-地图的建立函数
+void crt_mapevent();
 
 //事件盒的事件响应函数
 gint disp_entry(GtkWidget *widget,GdkEvent *event,gpointer gp);
@@ -130,8 +128,15 @@ void set_window(GtkWidget *widget,gpointer gp);
 //托盘菜单程序退出的响应函数
 void exit_window(GtkWidget *widget,gpointer gp);
 //右键点击托盘图标弹出菜单的响应函数
-void show_menu(GtkWidget *widget,gpointer gp);
-
+void show_menu(GtkWidget *widget,guint button,guint32 activate_time,gpointer gp);
+//delete事件响应函数
+gint hide_window(GtkWidget *widget,GdkEvent *event,gpointer gp);
+//工具栏的响应函数
+void on_bnt0(GtkWidget *widget,gpointer gp);
+void on_bnt1(GtkWidget *widget,gpointer gp);
+void on_bnt2(GtkWidget *widget,gpointer gp);
+void on_bnt3(GtkWidget *widget,gpointer gp);
+void on_bnt4(GtkWidget *widget,gpointer gp);
 
 //}}}
 
